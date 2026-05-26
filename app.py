@@ -13,6 +13,7 @@ import time
 class MNISTApp:
     def __init__(self, root):
         self.root = root
+        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
         self.root.title("Персептрон: 7 vs не-7 (MNIST) | Лабораторная работа")
         self.root.geometry("1200x850")
 
@@ -84,6 +85,10 @@ class MNISTApp:
     def load_mnist(self):
         try:
             from tensorflow.keras.datasets import mnist as tf_mnist
+            """
+                x_tr, x_te - (60000, 28, 28)
+                y_tr, y_te - (60000,)
+            """
 
             (x_tr, y_tr), (x_te, y_te) = tf_mnist.load_data()
         except Exception as e:
@@ -91,10 +96,10 @@ class MNISTApp:
             return
 
         self.y_train_orig, self.y_test_orig = y_tr.copy(), y_te.copy()
-        self.Y_train = (y_tr == 7).astype(np.float32)
+        self.Y_train = (y_tr == 7).astype(np.float32) # 1.0 where 7 and 0.0 where not 7
         self.Y_test = (y_te == 7).astype(np.float32)
-        self.X_train = (x_tr > 128).astype(np.float32).reshape(-1, 28 * 28)
-        self.X_test = (x_te > 128).astype(np.float32).reshape(-1, 28 * 28)
+        self.X_train = (x_tr/255 ).astype(np.float32).reshape(-1, 28 * 28)
+        self.X_test = (x_te/255).astype(np.float32).reshape(-1, 28 * 28)
 
         self.data_loaded = True
         self.btn_train.config(state="normal")
@@ -121,9 +126,9 @@ class MNISTApp:
             )
             txt.grid(row=1, column=i, padx=2)
 
-    def _update_log(self, epoch, err, mis, threshold=None):
+    def _update_log(self, epoch, err, mis, bias=None):
         self.log_txt.insert(
-            "end", f"Эпоха {epoch:2d} | Ошибка: {err:4.0f} | Порог: {threshold:.2f}\n"
+            "end", f"Эпоха {epoch:2d} | Ошибка: {err:4.0f} | Bias: {bias:.2f}\n"
         )
         self.log_txt.see("end")
         self.root.update_idletasks()
@@ -143,7 +148,7 @@ class MNISTApp:
         idx0 = np.where(self.Y_train == 0)[0]
         np.random.shuffle(idx7)
         np.random.shuffle(idx0)
-        idx = np.concatenate([idx7[:1000], idx0[:1000]])
+        idx = np.concatenate([idx7[:3000], idx0[:1000]])
         X_s, Y_s = self.X_train[idx], self.Y_train[idx]
 
         t0 = time.time()
@@ -225,4 +230,9 @@ class MNISTApp:
         ttk.Label(self.frm_test_imgs, text="Визуализация весов сети").grid(
             row=2, column=0, columnspan=10
         )
+
+    def on_closing(self):
+        plt.close(self.fig)
+        self.root.destroy()
+
 

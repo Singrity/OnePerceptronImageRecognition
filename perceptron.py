@@ -5,21 +5,21 @@ class Perceptron:
         self.n_inputs = n_inputs
         self.lr = lr
         self.weights = np.zeros(n_inputs, dtype=np.float64)
-        self.threshold = 0.0
+        self.bias = 0.0
         self.training_log = []
 
     def forward(self, x):
-        net = np.dot(self.weights, x) - self.threshold
+        # x - vec 28x28
+        net = np.dot(self.weights, x) + self.bias
         out = 1 if net >= 0 else 0
         return net, out
 
     def predict_batch(self, X):
-        net = X @ self.weights - self.threshold
+        net = X @ self.weights + self.bias
         out = (net >= 0).astype(int)
         return out, net
 
     def train(self, X, Y, max_epochs=50, error_threshold=0.0, ui_callback=None):
-        print(X, Y)
         self.training_log = []
         n = len(X)
 
@@ -29,24 +29,24 @@ class Perceptron:
 
             for i in range(n):
                 net, out = self.forward(X[i])
-                error = Y[i] - out
+                error = Y[i] - out # error {-1, 0, 1}
                 total_error += abs(error)
 
                 if error != 0:
                     misclassified += 1
                     self.weights += self.lr * error * X[i]
-                    self.threshold -= self.lr * error
+                    self.bias += self.lr * error
 
             self.training_log.append(
                 {
                     "epoch": epoch,
                     "error": total_error,
                     "mis": misclassified,
-                    "threshold": self.threshold,
+                    "bias": self.bias,
                 }
             )
             if ui_callback:
-                ui_callback(epoch, total_error, misclassified, self.threshold)
+                ui_callback(epoch, total_error, misclassified, self.bias)
             if total_error <= error_threshold:
                 break
 
